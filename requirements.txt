@@ -1,0 +1,16 @@
+deep-translator
+translators
+huggingface-hub
+numpy
+opencv-python
+pillow
+ultralytics
+gradio
+transformers
+accelerate
+qwen-vl-utils
+google-genai 
+rarfile
+reportlab
+pdf2image
+git+https://github.com/mansuf/mangadex-downloader.git
