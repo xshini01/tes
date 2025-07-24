@@ -1,18 +1,27 @@
+import os
+
 class PromptConfig:
     def __init__(self):
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+        # Model files, path relative to project root
         self.models = {
-            "Model-1": "model.pt",
-            "Model-2" : "best.pt"
+            "Model-1": os.path.join(BASE_DIR, "..", "model.pt"),
+            "Model-2": os.path.join(BASE_DIR, "..", "best.pt")
         }
+
+        # Example translation methods
         self.methods = {
             "Google": "google",
             "DeepL": "deepl",
-            "Helsinki-NLP's opus-mt-en-id model":"hf",
+            "Helsinki-NLP's opus-mt-en-id model": "hf",
             "Baidu": "baidu",
             "Bing": "bing",
         }
+
+        # Font files
         self.fonts = {
-            "animeace_i": "fonts/fonts_animeace_i.ttf",
-            "mangati": "fonts/fonts_mangati.ttf",
-            "ariali": "fonts/fonts_ariali.ttf",
+            "animeace_i": os.path.join(BASE_DIR, "..", "fonts", "fonts_animeace_i.ttf"),
+            "mangati": os.path.join(BASE_DIR, "..", "fonts", "fonts_mangati.ttf"),
+            "ariali": os.path.join(BASE_DIR, "..", "fonts", "fonts_ariali.ttf"),
         }

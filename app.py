@@ -32,18 +32,6 @@ def get_images(image_folder):
     ]
     return image_paths  # Mengembalikan daftar path gambar
 
-
-def install_from_setup():
-    try:
-        subprocess.run(
-            ["python", "setup.py", "install"],
-            cwd="/content/mangadex-downloader",
-            check=True
-        )
-        print("Install berhasil!")
-    except subprocess.CalledProcessError:
-        print("Gagal install.")
-
 # fungsi mencoba api
 def retry_on_429(func, *args, max_retries=10, base_wait=5, **kwargs):
     """Retry jika terjadi error 429 (RESOURCE_EXHAUSTED) atau 503 (UNAVAILABLE) dengan exponential backoff."""
@@ -91,7 +79,7 @@ def predict(files_input, MODEL, translation_method, font, progress=gr.Progress(t
     if font is None:
         font = "fonts/fonts_animeace_i.ttf"
 
-    if files_input.startswith(("http://", "https://")):
+    if isinstance(files_input, str) and files_input.startswith(("http://", "https://")):
         mangadex_download(files_input)
     else:
         extract_file(files_input)
@@ -136,10 +124,6 @@ def predict(files_input, MODEL, translation_method, font, progress=gr.Progress(t
 
     return get_images(source_dir), get_images(save_dir), gr.update(value=to_pdf, visible=True)
 
-            
-TITLE = "Komik Translator"
-DESCRIPTION = "Translate komik dari Inggris => Indonesia"
-
 # ui token
 with gr.Blocks() as token_interface:
         gr.Markdown("## Token/API Key Gemini Ai (opsional)")
@@ -154,7 +138,6 @@ with gr.Blocks() as token_interface:
         save_button.click(fn=gemini_ai.save_token, inputs=token_input, outputs=output_label)
 
 clear_output()
-install_from_setup()
 token_interface.launch(share=True)
 
 while not gemini_ai.token_set:
@@ -204,18 +187,18 @@ with gr.Blocks(theme='JohnSmith9982/small_and_pretty', title= "Komik Translator"
                 submit_button = gr.Button("Translate", variant= "primary")
 
         with gr.Column():
-            ori_imgs= gr.Gallery(label="Gambar Asli"),
-            result_imgs = gr.Gallery(label=" Hasil Terjemahan"),
+            ori_imgs= gr.Gallery(label="Gambar Asli")
+            result_imgs = gr.Gallery(label=" Hasil Terjemahan")
             result_file = gr.File(label="Download File", visible= False)
 
     button_link.click (
         predict,
-        inputs= [input_files,input_model,input_tl_method,input_font],
+        inputs= [input_link, input_model, input_tl_method, input_font],
         outputs= [ori_imgs, result_imgs,result_file],
     )
     submit_button.click(
         predict,
-        inputs= [input_files,input_model,input_tl_method,input_font],
+        inputs= [input_files, input_model, input_tl_method, input_font],
         outputs= [ori_imgs, result_imgs,result_file],
     )
 
