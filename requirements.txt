@@ -8,4 +8,4 @@ google-genai
 rarfile
 img2pdf
 pdf2image
-git+https://github.com/mansuf/mangadex-downloader.git
+mangadex-downloader
