@@ -1,8 +1,6 @@
 deep-translator
 translators
-huggingface-hub
 ultralytics
-gradio
 qwen-vl-utils
 google-genai 
 rarfile

@@ -14,7 +14,9 @@ def mangadex_download(link):
     shutil.rmtree(download_dir, ignore_errors=True)
     os.makedirs(download_dir, exist_ok=True)
 
-    subprocess.run(["mangadex-dl", link], cwd=download_dir)
+    result = subprocess.run(["mangadex-dl", link], cwd=download_dir)
+    if result.returncode != 0:
+        raise RuntimeError("Download gagal. Periksa link atau mangadex-dl.")
 
     folders = [f for f in os.listdir(download_dir) if os.path.isdir(os.path.join(download_dir, f))]
     if not folders:
