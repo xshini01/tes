@@ -64,20 +64,18 @@ def retry_on_429(func, *args, max_retries=10, base_wait=5, **kwargs):
 
 
 # main fungsi
-def predict(files_input, MODEL, translation_method, font, progress=gr.Progress(track_tqdm=True)):
+def predict(files_input, model, translation_method, font, progress=gr.Progress(track_tqdm=True)):
     source_dir = 'folder_ekstrak'
     save_dir = "save_images"
+
+    MODEL = config.models.get(model, "best.pt")
+    font = config.fonts.get(font, "fonts/fonts_animeace_i.ttf")
 
     if os.path.exists(save_dir):
         shutil.rmtree(save_dir)
         shutil.rmtree(source_dir)
 
     os.makedirs(save_dir, exist_ok=True)
-    
-    if translation_method is None:
-        translation_method = "google"
-    if font is None:
-        font = "fonts/fonts_animeace_i.ttf"
 
     if isinstance(files_input, str) and files_input.startswith(("http://", "https://")):
         mangadex_download(files_input)
