@@ -13,10 +13,7 @@ class PromptConfig:
         # Example translation methods
         self.methods = {
             "Google": "google",
-            "DeepL": "deepl",
             "Helsinki-NLP's opus-mt-en-id model": "hf",
-            "Baidu": "baidu",
-            "Bing": "bing",
         }
 
         # Font files

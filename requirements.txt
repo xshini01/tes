@@ -1,5 +1,4 @@
 deep-translator
-translators
 ultralytics
 qwen-vl-utils
 google-genai 
