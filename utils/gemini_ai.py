@@ -15,7 +15,6 @@ def save_token(token):
     else:
         return "Continue without token"
 
-
 safety_set=[
     types.SafetySetting(
         category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
@@ -45,7 +44,7 @@ def gemini_ai_ocr(imgs) :
             safety_settings=safety_set,
         ),
             
-        contents=["Extract the text from this image.", image])
+        contents=["Please extract the text from each speech bubble. For each bubble, add a semicolon (;) at the end, and place the output on a new line for every speech bubble.", image])
     return response.text
 
 def gemini_ai_translator(text) :
