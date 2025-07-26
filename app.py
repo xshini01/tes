@@ -24,6 +24,38 @@ from natsort import natsorted
 
 config = configs.PromptConfig()
 
+def split_ocr_by_semicolon(ocr_text):
+    lines = [line.strip() for line in ocr_text.strip().split('\n') if line.strip()]
+    segments = []
+    current = []
+
+    for line in lines:
+        if line.endswith(";"):
+            current.append(line.rstrip(";"))
+            segments.append("\n".join(current).strip())
+            current = []
+        else:
+            current.append(line)
+
+    if current:
+        segments.append("\n".join(current).strip())
+
+    return segments
+
+
+def combine_bubbles_vertically(cropped_images):
+    widths, heights = zip(*(img.size for img in cropped_images))
+    max_width = max(widths)
+    total_height = sum(heights) + 10 * (len(cropped_images) - 1)
+
+    combined_image = Image.new('RGB', (max_width, total_height), (255, 255, 255))
+    y_offset = 0
+    for img in cropped_images:
+        combined_image.paste(img, (0, y_offset))
+        y_offset += img.size[1] + 10
+
+    return combined_image
+
 def get_images(image_folder):
     image_paths = [
         os.path.join(image_folder, file)
@@ -73,8 +105,8 @@ def predict(files_input, model, translation_method, font, progress=gr.Progress(t
 
     if os.path.exists(save_dir):
         shutil.rmtree(save_dir)
+    if os.path.exists(source_dir):
         shutil.rmtree(source_dir)
-
     os.makedirs(save_dir, exist_ok=True)
 
     if isinstance(files_input, str) and files_input.startswith(("http://", "https://")):
@@ -88,35 +120,71 @@ def predict(files_input, model, translation_method, font, progress=gr.Progress(t
         files = natsorted(files)
         for file in tqdm(files, desc="Memproses Gambar"):
             file_path = os.path.join(root, file)
-
             results = detect_bubbles(MODEL, file_path)
-
             image = cv2.imread(file_path)
 
-            for result in tqdm(results, desc= "Mentranslate Gambar"):
+            bubbles_data = []
+
+            for result in results:
                 x1, y1, x2, y2, score, class_id = result
+                x1, y1, x2, y2 = map(int, (x1, y1, x2, y2))
 
-                detected_image = image[int(y1):int(y2), int(x1):int(x2)]
+                # 1. crop asli → untuk OCR
+                original_crop = image[y1:y2, x1:x2]
+                pil_crop = Image.fromarray(original_crop)
 
-                im = Image.fromarray(detected_image)
+                # 2. proses bubble (hapus teks) → untuk pasang teks baru
+                processed_crop, bubble_cont = process_bubble(original_crop)
 
-                im.save("detected_image.png")
+                bubbles_data.append({
+                    'coords': (x1, y1, x2, y2),
+                    'original_crop': pil_crop,
+                    'processed_crop': processed_crop,
+                    'bubble_cont': bubble_cont
+                })
 
-                detected_image, cont = process_bubble(detected_image)
+            if not bubbles_data:
+                continue
 
-                if gemini_ai.genai_token :
-                    text = retry_on_429(gemini_ai.gemini_ai_ocr, "detected_image.png")
-                    text_translated = retry_on_429(gemini_ai.gemini_ai_translator, text)
+            # === OCR batch: gabungkan original crop (belum dibersihkan) ===
+            combined_image = combine_bubbles_vertically([b['original_crop'] for b in bubbles_data])
+            combined_path = "combined_bubbles.png"
+            combined_image.save(combined_path)
+
+            if gemini_ai.genai_token:
+                ocr_result = retry_on_429(gemini_ai.gemini_ai_ocr, combined_path)
+            else:
+                ocr_result = qwen2_vl_ocr(combined_image, model_ocr, processor_ocr)
+            
+            print(f"ini hasil ocr {ocr_result}")
+            # === Ubah jadi pisah per speech bubble berdasarkan tanda ;
+            ocr_lines = split_ocr_by_semicolon(ocr_result)
+            print(f"ini ocr line {ocr_lines}")
+
+            # Tambahkan dummy jika hasil kurang dari jumlah bubble
+            while len(ocr_lines) < len(bubbles_data):
+                ocr_lines.append("[OCR MISS]")
+
+            # === Translasi semua hasil OCR ===
+            translated_lines = []
+            for line in ocr_lines:
+                if gemini_ai.genai_token:
+                    translated = retry_on_429(gemini_ai.gemini_ai_translator, line)
                 else:
-                    text = qwen2_vl_ocr(im, model_ocr, processor_ocr)
-                    text_translated = manga_translator.translate(text,
-                                                                method=translation_method)
+                    translated = manga_translator.translate(line, method=translation_method)
+                translated_lines.append(translated)
 
-                image_with_text = add_text(detected_image, text_translated, font, cont)
+            # === Tempel hasil ke gambar asli ===
+            for bubble, translated in zip(bubbles_data, translated_lines):
+                x1, y1, x2, y2 = bubble['coords']
+                final_crop = add_text(bubble['processed_crop'], translated, font, bubble['bubble_cont'])
+                image[y1:y2, x1:x2] = final_crop
 
-            image_path = os.path.join(save_dir, f"output_image_{sum(1 for entry in os.scandir(save_dir) if entry.is_file()) + 1}.png")
-            cv2.imwrite(image_path, image)
+            output_idx = sum(1 for entry in os.scandir(save_dir) if entry.is_file()) + 1
+            output_path = os.path.join(save_dir, f"output_image_{output_idx}.png")
+            cv2.imwrite(output_path, image)
             time.sleep(0.1)
+
 
     to_pdf= compress_toPDF()
 
@@ -155,49 +223,67 @@ if not gemini_ai.genai_token:
     load_ocr_model()
 
 # main interface
-with gr.Blocks(theme='JohnSmith9982/small_and_pretty', title= "Komik Translator",) as ui:
+with gr.Blocks(theme='JohnSmith9982/small_and_pretty', title="Komik Translator") as ui:
     gr.Markdown("Translate komik dari Inggris => Indonesia")
+
     with gr.Row():
-        with gr.Column():
-            with gr.Group():
-                input_link = gr.Textbox(label= "link mangadex", placeholder = "Masukan link disini!")
-                button_link = gr.Button("Translate manga dengan link ini!", variant= "primary")
-            with gr.Group():
-                input_files = gr.Files(file_count= "multiple", file_types= ["image", ".zip", ".rar", ".pdf"])
+        with gr.Column(variant='panel') as content_group:
+            input_mode = gr.Radio(
+                ["Input file/gambar", "Input link MangaDex"],
+                value="Input file/gambar",
+                label="Pilih metode input",
+                info="Pilih salah satu metode input: upload files/gambar atau link MangaDex",
+                interactive=True
+            )
+
+            with gr.Group(visible=True) as content_file:
+                input_files = gr.Files(file_count="multiple", file_types=["image", ".zip", ".rar", ".pdf"])
                 input_model = gr.Dropdown(
-                                choices= list(config.models.keys()),
-                                label="Model YOLO",
-                                value="Model-2",
-                                interactive=True,
-                            )
+                    choices=list(config.models.keys()),
+                    label="Model YOLO",
+                    value="Model-2",
+                    interactive=True,
+                )
                 input_tl_method = gr.Dropdown(
-                                    choices= list(config.methods.keys()),
-                                    label="Translation Method",
-                                    value="Google",
-                                    interactive= True,
-                                )
+                    choices=list(config.methods.keys()),
+                    label="Translation Method",
+                    value="Google",
+                    interactive=True,
+                )
                 input_font = gr.Dropdown(
-                                choices= list(config.fonts.keys()),
-                                label="Text Font",
-                                value="animeace_i",
-                                interactive=True,
-                            )
-                submit_button = gr.Button("Translate", variant= "primary")
+                    choices=list(config.fonts.keys()),
+                    label="Text Font",
+                    value="animeace_i",
+                    interactive=True,
+                )
+                submit_button = gr.Button("Translate", variant="primary")
 
-        with gr.Column():
-            ori_imgs= gr.Gallery(label="Gambar Asli")
-            result_imgs = gr.Gallery(label=" Hasil Terjemahan")
-            result_file = gr.File(label="Download File", visible= False)
+            with gr.Column(variant='panel', visible=False) as content_link:
+                input_link = gr.Textbox(label="Link MangaDex", placeholder="Masukan link disini!")
+                button_link = gr.Button("Translate manga dengan link ini!", variant="primary")
 
-    button_link.click (
+        def show_mode(mode):
+            if mode == "Input link MangaDex":
+                return gr.update(visible=True), gr.update(visible=False)
+            else:
+                return gr.update(visible=False), gr.update(visible=True)
+
+        input_mode.change(show_mode, inputs=input_mode, outputs=[content_link, content_file])
+
+        with gr.Column(variant='panel'):
+            ori_imgs = gr.Gallery(label="Gambar Asli")
+            result_imgs = gr.Gallery(label="Hasil Terjemahan")
+            result_file = gr.File(label="Download File", visible=False)
+
+    button_link.click(
         predict,
-        inputs= [input_link, input_model, input_tl_method, input_font],
-        outputs= [ori_imgs, result_imgs,result_file],
+        inputs=[input_link, input_model, input_tl_method, input_font],
+        outputs=[ori_imgs, result_imgs, result_file],
     )
     submit_button.click(
         predict,
-        inputs= [input_files, input_model, input_tl_method, input_font],
-        outputs= [ori_imgs, result_imgs,result_file],
+        inputs=[input_files, input_model, input_tl_method, input_font],
+        outputs=[ori_imgs, result_imgs, result_file],
     )
 
 clear_output()
