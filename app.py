@@ -101,11 +101,11 @@ def retry_on_429(func, *args, max_retries=10, base_wait=5, **kwargs):
 
 
 # main fungsi
-def predict(files_input, model, translation_method, font, api, progress=gr.Progress(track_tqdm=True)):
+def predict(files_input, model, translation_method, font, api_key, progress=gr.Progress(track_tqdm=True)):
     source_dir = 'folder_ekstrak'
     save_dir = "save_images"
     global deepl_apikey 
-    deepl_apikey = api
+    deepl_apikey = api_key
 
     MODEL = config.models.get(model, "best.pt")
     font = config.fonts.get(font, "fonts/fonts_animeace_i.ttf")
