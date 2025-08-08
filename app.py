@@ -109,7 +109,7 @@ def predict(files_input, model, translation_method, font, api_key, progress=gr.P
 
     MODEL = config.models.get(model, "best.pt")
     font = config.fonts.get(font, "fonts/fonts_animeace_i.ttf")
-    tl_method = config.methods.get(translation_method, "google")
+    tl_method = config.full_methods.get(translation_method, "google")
 
     if os.path.exists(save_dir):
         shutil.rmtree(save_dir)
