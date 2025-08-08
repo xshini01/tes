@@ -22,7 +22,7 @@ from tqdm import tqdm
 import shutil
 from natsort import natsorted
 
-config = configs.PromptConfig()
+config = configs.Translator()
 
 def split_semicolon(ocr_text):
     lines = [line.strip() for line in ocr_text.strip().split('\n') if line.strip()]
@@ -190,9 +190,9 @@ def predict(files_input, model, translation_method, font, progress=gr.Progress(t
 with gr.Blocks() as token_interface:
         gr.Markdown("## Token/API Key Gemini Ai (opsional)")
         token_input = gr.Textbox(
-            label="Jika Anda menggunakan Token/API Key Gemini AI, OCR dan terjemahan akan dilakukan menggunakan Gemini AI. Jika tidak, model default(qwen2_vl_ocr) akan digunakan.",
-            info="Anda bisa mendapatkan Token/API Key Gemini AI dari <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\"> SINI (Token/API Key Google)</a>. \nToken/API Key ini bersifat opsional dan dapat digunakan untuk pemindaian dan terjemahan teks menggunakan Gemini AI (Google).",
-            placeholder="Masukan Token/API Key disini (opsional) ...",
+            label="Jika Anda menggunakan Token/API Key Gemini AI, OCR dan terjemahan akan dilakukan menggunakan Gemini AI. Jika tidak, model default(qwen2_vl_ocr) akan digunakan. \nTekan SUBMIT untuk melanjutkan(boleh diisi maupun tidak)",
+            info="Anda bisa mendapatkan Token/API Key Gemini AI dari <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\"> SINI (Token/API Key Google)</a>. \nToken/API Key ini bersifat OPSIONAL dan dapat digunakan untuk pemindaian dan terjemahan teks menggunakan Gemini AI (Google).",
+            placeholder="Masukan Token/API Key disini (disarankan) ...",
             type="password"
         )
         save_button = gr.Button("Submit", variant="primary")
@@ -248,15 +248,17 @@ with gr.Blocks(theme='JohnSmith9982/small_and_pretty', title="Komik Translator")
                     interactive=True,
                 )
                 input_tl_method = gr.Dropdown(
-                    choices=list(config.methods.keys()),
+                    choices=config.get_available_methods(),
                     label="Translation Method",
                     value="Google",
                     interactive=True,
                 )
                 deepl_api = gr.Textbox(
+                    label="Api key DeepL",
                     info="membutuhkan api key DeepL untuk menggunakan fungsi ini",
                     type="password", 
                     placeholder="masukan api key disini!!",
+                    interactive= True,
                     visible=False,
                 )
                 input_font = gr.Dropdown(
