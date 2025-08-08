@@ -1,5 +1,5 @@
 import os
-import gemini_ai
+from utils import gemini_ai
 
 class Translator:
     def __init__(self):
