@@ -23,6 +23,7 @@ import shutil
 from natsort import natsorted
 
 config = configs.Translator()
+model_ocr, processor_ocr = None, None
 
 def split_semicolon(ocr_text):
     lines = [line.strip() for line in ocr_text.strip().split('\n') if line.strip()]
@@ -206,8 +207,6 @@ def main ():
 
     while not gemini_ai.token_set:
         time.sleep(2)
-
-    model_ocr, processor_ocr = None, None
 
     if not gemini_ai.genai_token:
         def load_ocr_model():
