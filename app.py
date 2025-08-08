@@ -23,7 +23,7 @@ import shutil
 from natsort import natsorted
 
 config = configs.Translator()
-model_ocr, processor_ocr = None, None
+model_ocr, processor_ocr, deepl_apikey = None, None, None
 
 def split_semicolon(ocr_text):
     lines = [line.strip() for line in ocr_text.strip().split('\n') if line.strip()]
@@ -101,9 +101,11 @@ def retry_on_429(func, *args, max_retries=10, base_wait=5, **kwargs):
 
 
 # main fungsi
-def predict(files_input, model, translation_method, font, progress=gr.Progress(track_tqdm=True)):
+def predict(files_input, model, translation_method, font, api, progress=gr.Progress(track_tqdm=True)):
     source_dir = 'folder_ekstrak'
     save_dir = "save_images"
+    global deepl_apikey 
+    deepl_apikey = api
 
     MODEL = config.models.get(model, "best.pt")
     font = config.fonts.get(font, "fonts/fonts_animeace_i.ttf")
@@ -291,12 +293,12 @@ def main ():
 
         button_link.click(
             predict,
-            inputs=[input_link, input_model, input_tl_method, input_font],
+            inputs=[input_link, input_model, input_tl_method, input_font, deepl_api],
             outputs=[ori_imgs, result_imgs, result_file],
         )
         submit_button.click(
             predict,
-            inputs=[input_files, input_model, input_tl_method, input_font],
+            inputs=[input_files, input_model, input_tl_method, input_font, deepl_api],
             outputs=[ori_imgs, result_imgs, result_file],
         )
 

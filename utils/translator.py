@@ -1,5 +1,6 @@
-from deep_translator import GoogleTranslator
+from deep_translator import GoogleTranslator, DeeplTranslator
 from transformers import pipeline
+from app import deepl_apikey
 # import translators as ts
 
 
@@ -12,7 +13,7 @@ class MangaTranslator:
             "hf": self._translate_with_hf,
             # "baidu": self._translate_with_baidu,
             # "bing": self._translate_with_bing,
-            # "deepl": self._translate_with_deepl
+            "deepl": self._translate_with_deepl
         }
 
     def translate(self, text, method="google"):
@@ -58,11 +59,9 @@ class MangaTranslator:
     #                                         to_language=self.target)
     #     return translated_text if translated_text is not None else text
     
-    # def _translate_with_deepl(self, text):
-    #     translated_text = ts.translate_text(text, translator="deepl",
-    #                                         from_language=self.source, 
-    #                                         to_language=self.target)
-    #     return translated_text if translated_text is not None else text
+    def _translate_with_deepl(self, text):
+        translated_text = DeeplTranslator(api_key=deepl_apikey, source="en", target="id", use_free_api=True).translate(text)
+        return translated_text if translated_text is not None else text
 
     def _preprocess_text(self, text):
         preprocessed_text = text.replace("．", ".")
