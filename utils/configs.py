@@ -1,5 +1,5 @@
 import os
-from utils.gemini_ai import genai_token
+import gemini_ai
 
 class Translator:
     def __init__(self):
@@ -25,6 +25,6 @@ class Translator:
 
     def get_available_methods(self):
         methods = self.full_methods.copy()
-        if not genai_token:
+        if not gemini_ai.genai_token:
             methods.pop("Gemini AI", None)
         return list(methods.keys())

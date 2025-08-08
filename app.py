@@ -186,118 +186,123 @@ def predict(files_input, model, translation_method, font, progress=gr.Progress(t
 
     return get_images(source_dir), get_images(save_dir), gr.update(value=to_pdf, visible=True)
 
-# ui token
-with gr.Blocks() as token_interface:
-        gr.Markdown("## Token/API Key Gemini Ai (opsional)")
-        token_input = gr.Textbox(
-            label="Jika Anda menggunakan Token/API Key Gemini AI, OCR dan terjemahan akan dilakukan menggunakan Gemini AI. Jika tidak, model default(qwen2_vl_ocr) akan digunakan. \nTekan SUBMIT untuk melanjutkan(boleh diisi maupun tidak)",
-            info="Anda bisa mendapatkan Token/API Key Gemini AI dari <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\"> SINI (Token/API Key Google)</a>. \nToken/API Key ini bersifat OPSIONAL dan dapat digunakan untuk pemindaian dan terjemahan teks menggunakan Gemini AI (Google).",
-            placeholder="Masukan Token/API Key disini (disarankan) ...",
-            type="password"
-        )
-        save_button = gr.Button("Submit", variant="primary")
-        output_label = gr.Label(label= "your Token/API Key :")
-        save_button.click(fn=gemini_ai.save_token, inputs=token_input, outputs=output_label)
 
-clear_output()
-token_interface.launch(share=True)
-
-while not gemini_ai.token_set:
-    time.sleep(2)
-
-model_ocr, processor_ocr = None, None
-
-if not gemini_ai.genai_token:
-    def load_ocr_model():
-        global model_ocr, processor_ocr
-        if model_ocr is None or processor_ocr is None:
-            model_ocr = Qwen2VLForConditionalGeneration.from_pretrained(
-                "prithivMLmods/Qwen2-VL-OCR-2B-Instruct", torch_dtype="auto", device_map="auto"
+def main ():
+    # ui token
+    with gr.Blocks() as token_interface:
+            gr.Markdown("## Token/API Key Gemini Ai (opsional)")
+            token_input = gr.Textbox(
+                label="Jika Anda menggunakan Token/API Key Gemini AI, OCR dan terjemahan akan dilakukan menggunakan Gemini AI. Jika tidak, model default(qwen2_vl_ocr) akan digunakan. \nTekan SUBMIT untuk melanjutkan(boleh diisi maupun tidak)",
+                info="Anda bisa mendapatkan Token/API Key Gemini AI dari <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\"> SINI (Token/API Key Google)</a>. \nToken/API Key ini bersifat OPSIONAL dan dapat digunakan untuk pemindaian dan terjemahan teks menggunakan Gemini AI (Google).",
+                placeholder="Masukan Token/API Key disini (disarankan) ...",
+                type="password"
             )
-            processor_ocr = AutoProcessor.from_pretrained("prithivMLmods/Qwen2-VL-OCR-2B-Instruct")
-    
-    load_ocr_model()
+            save_button = gr.Button("Submit", variant="primary")
+            output_label = gr.Label(label= "your Token/API Key :")
+            save_button.click(fn=gemini_ai.save_token, inputs=token_input, outputs=output_label)
 
-# main interface
-with gr.Blocks(theme='JohnSmith9982/small_and_pretty', title="Komik Translator") as ui:
-    gr.Markdown("Translate komik dari Inggris => Indonesia")
+    clear_output()
+    token_interface.launch(share=True)
 
-    with gr.Row():
-        with gr.Column(variant='panel') as content_group:
-            input_mode = gr.Radio(
-                ["Input file/gambar", "Input link MangaDex"],
-                value="Input file/gambar",
-                label="Pilih metode input",
-                info="Pilih salah satu metode input: upload file/gambar atau link MangaDex",
-                interactive=True
-            )
+    while not gemini_ai.token_set:
+        time.sleep(2)
 
-            with gr.Group(visible=True) as content_file:
-                input_files = gr.Files(file_count="multiple", file_types=["image", ".zip", ".rar", ".pdf"])
-                submit_button = gr.Button("Translate", variant="primary")
+    model_ocr, processor_ocr = None, None
 
-            with gr.Column(variant='panel', visible=False) as content_link:
-                input_link = gr.Textbox(label="Link MangaDex", placeholder="Masukan link disini!")
-                button_link = gr.Button("Translate manga dengan link ini!", variant="primary")
-
-            with gr.Column(variant='panel'):
-                input_model = gr.Dropdown(
-                    choices=list(config.models.keys()),
-                    label="Model YOLO",
-                    value="Model-2",
-                    interactive=True,
+    if not gemini_ai.genai_token:
+        def load_ocr_model():
+            global model_ocr, processor_ocr
+            if model_ocr is None or processor_ocr is None:
+                model_ocr = Qwen2VLForConditionalGeneration.from_pretrained(
+                    "prithivMLmods/Qwen2-VL-OCR-2B-Instruct", torch_dtype="auto", device_map="auto"
                 )
-                input_tl_method = gr.Dropdown(
-                    choices=config.get_available_methods(),
-                    label="Translation Method",
-                    value="Google",
-                    interactive=True,
-                )
-                deepl_api = gr.Textbox(
-                    label="Api key DeepL",
-                    info="membutuhkan api key DeepL untuk menggunakan fungsi ini",
-                    type="password", 
-                    placeholder="masukan api key disini!!",
-                    interactive= True,
-                    visible=False,
-                )
-                input_font = gr.Dropdown(
-                    choices=list(config.fonts.keys()),
-                    label="Text Font",
-                    value="animeace_i",
-                    interactive=True,
-                )
-
-        def show_mode(mode):
-            if mode == "Input link MangaDex":
-                return gr.update(visible=True), gr.update(visible=False)
-            else:
-                return gr.update(visible=False), gr.update(visible=True)
-            
-        def api_visibility(method):
-            if method.lower() == "deepl" :
-                return gr.update(visible=True)
-            else :
-                return gr.update(visible=False)
-
-        input_mode.change(show_mode, inputs=input_mode, outputs=[content_link, content_file])
-        input_tl_method.change(api_visibility, inputs=input_tl_method, outputs=deepl_api)
+                processor_ocr = AutoProcessor.from_pretrained("prithivMLmods/Qwen2-VL-OCR-2B-Instruct")
         
-        with gr.Column(variant='panel'):
-            ori_imgs = gr.Gallery(label="Gambar Asli")
-            result_imgs = gr.Gallery(label="Hasil Terjemahan")
-            result_file = gr.File(label="Download File", visible=False)
+        load_ocr_model()
 
-    button_link.click(
-        predict,
-        inputs=[input_link, input_model, input_tl_method, input_font],
-        outputs=[ori_imgs, result_imgs, result_file],
-    )
-    submit_button.click(
-        predict,
-        inputs=[input_files, input_model, input_tl_method, input_font],
-        outputs=[ori_imgs, result_imgs, result_file],
-    )
+    # main interface
+    with gr.Blocks(theme='JohnSmith9982/small_and_pretty', title="Komik Translator") as ui:
+        gr.Markdown("Translate komik dari Inggris => Indonesia")
 
-clear_output()
-ui.launch(debug=True, share=True, inline=False)
+        with gr.Row():
+            with gr.Column(variant='panel') as content_group:
+                input_mode = gr.Radio(
+                    ["Input file/gambar", "Input link MangaDex"],
+                    value="Input file/gambar",
+                    label="Pilih metode input",
+                    info="Pilih salah satu metode input: upload file/gambar atau link MangaDex",
+                    interactive=True
+                )
+
+                with gr.Group(visible=True) as content_file:
+                    input_files = gr.Files(file_count="multiple", file_types=["image", ".zip", ".rar", ".pdf"])
+                    submit_button = gr.Button("Translate", variant="primary")
+
+                with gr.Column(variant='panel', visible=False) as content_link:
+                    input_link = gr.Textbox(label="Link MangaDex", placeholder="Masukan link disini!")
+                    button_link = gr.Button("Translate manga dengan link ini!", variant="primary")
+
+                with gr.Column(variant='panel'):
+                    input_model = gr.Dropdown(
+                        choices=list(config.models.keys()),
+                        label="Model YOLO",
+                        value="Model-2",
+                        interactive=True,
+                    )
+                    input_tl_method = gr.Dropdown(
+                        choices=config.get_available_methods(),
+                        label="Translation Method",
+                        value="Google",
+                        interactive=True,
+                    )
+                    deepl_api = gr.Textbox(
+                        label="Api key DeepL",
+                        info="membutuhkan api key DeepL untuk menggunakan fungsi ini",
+                        type="password", 
+                        placeholder="masukan api key disini!!",
+                        interactive= True,
+                        visible=False,
+                    )
+                    input_font = gr.Dropdown(
+                        choices=list(config.fonts.keys()),
+                        label="Text Font",
+                        value="animeace_i",
+                        interactive=True,
+                    )
+
+            def show_mode(mode):
+                if mode == "Input link MangaDex":
+                    return gr.update(visible=True), gr.update(visible=False)
+                else:
+                    return gr.update(visible=False), gr.update(visible=True)
+                
+            def api_visibility(method):
+                if method.lower() == "deepl" :
+                    return gr.update(visible=True)
+                else :
+                    return gr.update(visible=False)
+
+            input_mode.change(show_mode, inputs=input_mode, outputs=[content_link, content_file])
+            input_tl_method.change(api_visibility, inputs=input_tl_method, outputs=deepl_api)
+            
+            with gr.Column(variant='panel'):
+                ori_imgs = gr.Gallery(label="Gambar Asli")
+                result_imgs = gr.Gallery(label="Hasil Terjemahan")
+                result_file = gr.File(label="Download File", visible=False)
+
+        button_link.click(
+            predict,
+            inputs=[input_link, input_model, input_tl_method, input_font],
+            outputs=[ori_imgs, result_imgs, result_file],
+        )
+        submit_button.click(
+            predict,
+            inputs=[input_files, input_model, input_tl_method, input_font],
+            outputs=[ori_imgs, result_imgs, result_file],
+        )
+
+    clear_output()
+    ui.launch(debug=True, share=True, inline=False)
+
+if __name__ == "__main__":
+    main()
