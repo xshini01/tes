@@ -1,6 +1,5 @@
 from deep_translator import GoogleTranslator, DeeplTranslator
 from transformers import pipeline
-from app import deepl_apikey
 # import translators as ts
 
 
@@ -60,6 +59,7 @@ class MangaTranslator:
     #     return translated_text if translated_text is not None else text
     
     def _translate_with_deepl(self, text):
+        from app import deepl_apikey
         translated_text = DeeplTranslator(api_key=deepl_apikey, source="en", target="id", use_free_api=True).translate(text)
         return translated_text if translated_text is not None else text
 
