@@ -21,53 +21,55 @@ class MangaTranslator:
 
         Args:
             text (str): The text to be translated.
-            method (str):"google" for Google Translator, 
-                         "hf" for Helsinki-NLP's opus-mt-en-id model (HF pipeline)
-                         "baidu" for Baidu Translate
-                         "bing" for Microsoft Bing Translator
+            method (str): "google", "hf", or "deepl"
+            api (str, optional): API key required for Deepl, if used.
 
         Returns:
             str: The translated text.
         """
-        translator_func = self.translators.get(method, api)
-        
+        translator_func = self.translators.get(method)
+
         if translator_func:
-            return translator_func(self._preprocess_text(text))
+            return translator_func(self._preprocess_text(text), api)
         else:
             raise ValueError("Invalid translation method.")
-            
-    def _translate_with_google(self, text, api):
+
+    def _translate_with_google(self, text, api=None):
         print(f"------------------------")
-        print(f"tl method with google")
+        print(f"Translation method: Google")
         print(f"------------------------")
         translator = GoogleTranslator(source=self.source, target=self.target)
         translated_text = translator.translate(text)
         return translated_text if translated_text is not None else text
 
-    def _translate_with_hf(self, text, api):
-        pipe = pipeline("translation", model=f"Helsinki-NLP/opus-mt-en-id")
+    def _translate_with_hf(self, text, api=None):
+        print(f"------------------------")
+        print(f"Translation method: HuggingFace (HF)")
+        print(f"------------------------")
+        pipe = pipeline("translation", model="Helsinki-NLP/opus-mt-en-id")
         translated_text = pipe(text)[0]["translation_text"]
         return translated_text if translated_text is not None else text
 
-    # def _translate_with_baidu(self, text):
+    # def _translate_with_baidu(self, text, api=None):
     #     translated_text = ts.translate_text(text, translator="baidu",
-    #                                         from_language="en", 
+    #                                         from_language=self.source, 
     #                                         to_language=self.target)
     #     return translated_text if translated_text is not None else text
 
-    # def _translate_with_bing(self, text):
+    # def _translate_with_bing(self, text, api=None):
     #     translated_text = ts.translate_text(text, translator="bing",
     #                                         from_language=self.source, 
     #                                         to_language=self.target)
     #     return translated_text if translated_text is not None else text
-    
-    def _translate_with_deepl(self, text, api):
+
+    def _translate_with_deepl(self, text, api=None):
         print(f"------------------------")
-        print(f"tl method with deepl")
+        print(f"Translation method: DeepL")
         print(f"------------------------")
+        if not api:
+            raise ValueError("DeepL API key must be provided.")
         translated_text = DeeplTranslator(api_key=api, source="en", target="id", use_free_api=True).translate(text)
         return translated_text if translated_text is not None else text
 
     def _preprocess_text(self, text):
-        preprocessed_text = text.replace("．", ".")
-        return preprocessed_text
+        return text.replace("．", ".")
