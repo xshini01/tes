@@ -15,7 +15,7 @@ class MangaTranslator:
             "deepl": self._translate_with_deepl
         }
 
-    def translate(self, text, method="google"):
+    def translate(self, text, method="google", api=None):
         """
         Translates the given text to the target language using the specified method.
 
@@ -29,19 +29,22 @@ class MangaTranslator:
         Returns:
             str: The translated text.
         """
-        translator_func = self.translators.get(method)
+        translator_func = self.translators.get(method, api)
         
         if translator_func:
             return translator_func(self._preprocess_text(text))
         else:
             raise ValueError("Invalid translation method.")
             
-    def _translate_with_google(self, text):
+    def _translate_with_google(self, text, api):
+        print(f"------------------------")
+        print(f"tl method with google")
+        print(f"------------------------")
         translator = GoogleTranslator(source=self.source, target=self.target)
         translated_text = translator.translate(text)
         return translated_text if translated_text is not None else text
 
-    def _translate_with_hf(self, text):
+    def _translate_with_hf(self, text, api):
         pipe = pipeline("translation", model=f"Helsinki-NLP/opus-mt-en-id")
         translated_text = pipe(text)[0]["translation_text"]
         return translated_text if translated_text is not None else text
@@ -58,9 +61,11 @@ class MangaTranslator:
     #                                         to_language=self.target)
     #     return translated_text if translated_text is not None else text
     
-    def _translate_with_deepl(self, text):
-        from app import deepl_apikey
-        translated_text = DeeplTranslator(api_key=deepl_apikey, source="en", target="id", use_free_api=True).translate(text)
+    def _translate_with_deepl(self, text, api):
+        print(f"------------------------")
+        print(f"tl method with deepl")
+        print(f"------------------------")
+        translated_text = DeeplTranslator(api_key=api, source="en", target="id", use_free_api=True).translate(text)
         return translated_text if translated_text is not None else text
 
     def _preprocess_text(self, text):

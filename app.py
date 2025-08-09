@@ -23,7 +23,7 @@ import shutil
 from natsort import natsorted
 
 config = configs.Translator()
-model_ocr, processor_ocr, deepl_apikey = None, None, None
+model_ocr, processor_ocr, = None, None
 
 def split_semicolon(ocr_text):
     lines = [line.strip() for line in ocr_text.strip().split('\n') if line.strip()]
@@ -101,11 +101,12 @@ def retry_on_429(func, *args, max_retries=10, base_wait=5, **kwargs):
 
 
 # main fungsi
-def predict(files_input, model, translation_method, font, api_key, progress=gr.Progress(track_tqdm=True)):
+def predict(files_input, model, translation_method, font, api_key=None, progress=gr.Progress(track_tqdm=True)):
+    print(f"------------------------")
+    print(f"this api_key: {api_key}")
+    print(f"------------------------")
     source_dir = 'folder_ekstrak'
     save_dir = "save_images"
-    global deepl_apikey 
-    deepl_apikey = api_key
 
     MODEL = config.models.get(model, "best.pt")
     font = config.fonts.get(font, "fonts/fonts_animeace_i.ttf")
@@ -171,7 +172,7 @@ def predict(files_input, model, translation_method, font, api_key, progress=gr.P
                 if gemini_ai.genai_token and tl_method=="gemini":
                     translated = retry_on_429(gemini_ai.gemini_ai_translator, line)
                 else:
-                    translated = manga_translator.translate(line, method=tl_method)
+                    translated = manga_translator.translate(line, method=tl_method, api=api_key)
                 translated_lines.append(translated)
 
             for bubble, translated in zip(bubbles_data, translated_lines):
